@@ -564,7 +564,6 @@ echo_url_routes = [
     ),
 ]
 
-
 def test_url_for_with_root_path(test_client_factory: TestClientFactory) -> None:
     app = Starlette(routes=echo_url_routes)
     client = test_client_factory(
@@ -1305,6 +1304,16 @@ echo_paths_routes = [
             ),
         ],
     ),
+    Mount("/{user_provided_mount:str}", name="wildcard mount path",
+            routes=[
+            Route(
+                "/path",
+                functools.partial(echo_paths, name="subpath"),
+                name="subpath",
+                methods=["GET"],
+        
+            ),
+        ],)
 ]
 
 
@@ -1338,4 +1347,21 @@ def test_paths_with_root_path(test_client_factory: TestClientFactory) -> None:
         "name": "subpath",
         "path": "/root/sub/path",
         "root_path": "/root/sub",
+    }
+
+    response = client.get("/root/user_provided_str/path")
+    assert response.status_code == 200
+    assert response.json() == {
+        "name": "subpath",
+        "path": "/root/user_provided_str/path",
+        "root_path": "/root/user_provided_str",
+    }
+
+    # a path with a regex special char should also work
+    response = client.get("/root/**/path")
+    assert response.status_code == 200
+    assert response.json() == {
+        "name": "subpath",
+        "path": "/root/**/path",
+        "root_path": "/root/**",
     }
